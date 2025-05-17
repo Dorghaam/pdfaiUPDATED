@@ -67,6 +67,13 @@ export default function UploadPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Check if we need to redirect to login
+        if (errorData.redirectTo) {
+          router.push(errorData.redirectTo);
+          return;
+        }
+        
         throw new Error(errorData.error || 'Failed to upload PDF');
       }
 

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     
     if (userError || !user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'Authentication required', redirectTo: '/login' },
         { status: 401 }
       );
     }

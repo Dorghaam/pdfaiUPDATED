@@ -16,6 +16,24 @@ export const AuthContext = createContext<{
 // Hook to use auth context
 export const useAuth = () => useContext(AuthContext);
 
+// Utility for retrying operations
+const retryOperation = async (operation: () => Promise<any>, maxRetries = 3, delay = 1000) => {
+  let lastError;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      console.error(`Operation failed (attempt ${i + 1}/${maxRetries}):`, error);
+      lastError = error;
+      if (i < maxRetries - 1) {
+        // Wait before next retry with increasing delay
+        await new Promise(r => setTimeout(r, delay * (i + 1)));
+      }
+    }
+  }
+  throw lastError;
+};
+
 // AuthProvider component
 export default function AuthProvider({ 
   children,
@@ -36,7 +54,12 @@ export default function AuthProvider({
     const getInitialSession = async () => {
       try {
         console.log('AuthProvider: Checking for client session');
-        const { data: { session } } = await supabase.auth.getSession();
+        // Use retry logic for getSession to handle rate limiting
+        const { data: { session } } = await retryOperation(
+          () => supabase.auth.getSession(),
+          3,  // max retries
+          1500 // base delay in ms (will increase with each retry)
+        );
         console.log('AuthProvider: Client session exists:', !!session);
         setSession(session);
       } catch (error) {
@@ -65,13 +88,26 @@ export default function AuthProvider({
           console.log('AuthProvider: User signed out');
           setSession(null);
           
-          // When signed out, explicitly check/clear the session
-          const { data } = await supabase.auth.getSession();
-          if (!data.session) {
-            console.log('AuthProvider: No session confirmed after signOut');
-          } else {
-            console.log('AuthProvider: Warning - session still exists after signOut');
-            await supabase.auth.signOut(); // Try again
+          // When signed out, explicitly check/clear the session with retry logic
+          try {
+            const { data } = await retryOperation(
+              () => supabase.auth.getSession(),
+              2,
+              1000
+            );
+            
+            if (!data.session) {
+              console.log('AuthProvider: No session confirmed after signOut');
+            } else {
+              console.log('AuthProvider: Warning - session still exists after signOut');
+              await retryOperation(
+                () => supabase.auth.signOut(),
+                2,
+                1000
+              );
+            }
+          } catch (error) {
+            console.error('Error during sign out verification:', error);
           }
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           console.log('AuthProvider: Token refreshed');

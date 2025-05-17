@@ -1,16 +1,52 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useAuth } from '@/app/components/AuthProvider';
+import { getSupabaseBrowserClient } from '@/app/lib/supabaseBrowserClient';
 
 export default function LoginPage() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
-  const supabase = createClientComponentClient();
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  
+  // Use our optimized singleton client instead of creating a new one
+  const supabase = getSupabaseBrowserClient();
+
+  // Retry mechanism for session checking
+  useEffect(() => {
+    // Only retry if there was a rate limit error
+    if (error?.includes('rate limit') && retryCount < 3) {
+      const timer = setTimeout(() => {
+        setError(null);
+        setRetryCount(prev => prev + 1);
+      }, 2000 * (retryCount + 1)); // Exponential backoff
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error, retryCount]);
+
+  // Add listener for auth errors
+  useEffect(() => {
+    const authListener = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        router.push('/upload');
+      }
+      
+      // Listen for error events from supabase auth
+      if (event === 'USER_UPDATED' && !session) {
+        console.warn('Auth error detected');
+        setError('An error occurred during authentication. Please try again.');
+      }
+    });
+    
+    return () => {
+      authListener.data.subscription.unsubscribe();
+    };
+  }, [supabase, router]);
 
   // Redirect to upload page if already authenticated
   useEffect(() => {
@@ -41,6 +77,15 @@ export default function LoginPage() {
               Or create a new account to get started
             </p>
           </div>
+          
+          {error && (
+            <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+              <span className="font-medium">Error:</span> {error}
+              {error.includes('rate limit') && (
+                <p className="mt-2">Please wait a moment before trying again.</p>
+              )}
+            </div>
+          )}
           
           <div className="mt-8">
             <Auth
