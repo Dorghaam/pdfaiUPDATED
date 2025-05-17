@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PDFUpload from '../components/PDFUpload';
 import PDFListItem from '../components/PDFListItem';
+import Header from '../components/Header';
 import { v4 as uuidv4 } from 'uuid';
 
 interface PDFDocument {
@@ -112,79 +113,11 @@ export default function UploadPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 font-[family-name:var(--font-geist-sans)]">
-      <header className="w-full p-4 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="text-blue-600 dark:text-blue-400"
-            >
-              <path
-                d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M14 2V8H20"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M16 13H8"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M16 17H8"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M10 9H9H8"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <h1 className="text-xl font-bold">Your PDF Dashboard</h1>
-          </div>
-          
-          <a
-            href="https://github.com/yourusername/pdf_ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 2C6.477 2 2 6.477 2 12C2 16.991 5.57 21.128 10.43 22V18.586C10.0535 18.6764 9.67871 18.7157 9.32 18.702C8.33 18.666 7.677 18.13 7.323 17.444C7.077 16.992 6.472 16.3 6.121 16.109C5.835 15.958 5.626 15.721 5.828 15.709C6.429 15.677 6.84 16.322 6.969 16.517C7.541 17.405 8.362 17.492 9.359 17.141C9.459 16.671 9.67 16.293 9.92 16.073C7.446 15.807 6.44 14.385 6.44 12.72C6.44 11.782 6.803 10.842 7.442 10.115C7.33 9.831 7.1 9.041 7.525 7.782C7.525 7.782 8.23 7.525 9.969 8.701C10.6337 8.50048 11.3153 8.39965 12 8.4C12.69 8.4 13.38 8.5 14.031 8.701C15.77 7.516 16.476 7.782 16.476 7.782C16.9 9.041 16.67 9.831 16.559 10.115C17.197 10.842 17.561 11.773 17.561 12.72C17.561 14.394 16.546 15.807 14.071 16.073C14.393 16.347 14.68 16.878 14.68 17.693V22C19.429 21.129 23 16.992 23 12C23 6.477 18.523 2 12 2Z"
-                fill="currentColor"
-              />
-            </svg>
-          </a>
-        </div>
-      </header>
+      <Header />
 
       <main className="flex-1 px-4 py-8 max-w-3xl mx-auto w-full">
+        <h1 className="text-2xl font-bold mb-6 text-center">Your PDF Dashboard</h1>
+        
         {!hasReachedLimit ? (
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold mb-4 text-center">Upload a New PDF</h2>
@@ -220,13 +153,21 @@ export default function UploadPage() {
           </div>
         )}
         
-        <div className="mt-8 space-y-2">
-          <h2 className="text-xl font-semibold mb-4">Your PDF Documents</h2>
+        <div className="mt-10">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 dark:text-blue-400">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <h2 className="text-xl font-semibold">Chat Documents</h2>
+            </div>
+            <span className="text-sm text-gray-500 dark:text-gray-400">{pdfHistory.length} document{pdfHistory.length !== 1 ? 's' : ''}</span>
+          </div>
           
           {isLoading ? (
-            <div className="p-8 flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <p className="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading your PDFs...</p>
+            <div className="p-8 flex justify-center items-center bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+              <p className="ml-3 text-gray-600 dark:text-gray-400">Loading your documents...</p>
             </div>
           ) : fetchError ? (
             <div className="p-6 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 rounded-md">
@@ -239,11 +180,20 @@ export default function UploadPage() {
               </button>
             </div>
           ) : pdfHistory.length === 0 ? (
-            <div className="p-6 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-md text-center">
-              <p>You have not uploaded any PDFs yet.</p>
+            <div className="p-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 text-center">
+              <div className="flex justify-center mb-4 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">No documents yet</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">Upload your first PDF to start chatting</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {pdfHistory.map((doc) => (
                 <PDFListItem 
                   key={doc.id} 

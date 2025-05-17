@@ -8,11 +8,14 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
+import { useAuth } from './components/AuthProvider';
+import Link from 'next/link';
 
 export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { session } = useAuth();
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
@@ -68,24 +71,53 @@ export default function Home() {
               From legal agreements to financial reports, PDFmate brings your documents to life.
               Ask questions, get summaries, find information, and more.
             </p>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-xl font-semibold mb-4">Upload your PDF</h3>
-              
-              <PDFUpload onFileUpload={handleFileUpload} />
-              
-              {isUploading && (
-                <div className="mt-4 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-                  <p className="ml-2 text-sm text-gray-600 dark:text-gray-400">Uploading PDF...</p>
+            
+            {session ? (
+              <div className="space-y-4">
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xl font-semibold mb-4">Upload your PDF</h3>
+                  
+                  <PDFUpload onFileUpload={handleFileUpload} />
+                  
+                  {isUploading && (
+                    <div className="mt-4 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                      <p className="ml-2 text-sm text-gray-600 dark:text-gray-400">Uploading PDF...</p>
+                    </div>
+                  )}
+                  
+                  {error && (
+                    <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 rounded-md text-sm">
+                      {error}
+                    </div>
+                  )}
                 </div>
-              )}
-              
-              {error && (
-                <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 rounded-md text-sm">
-                  {error}
-                </div>
-              )}
-            </div>
+                
+                <Link href="/upload" className="inline-block w-full text-center py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
+                  Go to Your Dashboard
+                </Link>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-semibold mb-4">Upload your PDF</h3>
+                
+                <PDFUpload onFileUpload={handleFileUpload} />
+                
+                {isUploading && (
+                  <div className="mt-4 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                    <p className="ml-2 text-sm text-gray-600 dark:text-gray-400">Uploading PDF...</p>
+                  </div>
+                )}
+                
+                {error && (
+                  <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 rounded-md text-sm">
+                    {error}
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div className="mt-6 flex items-center text-sm text-gray-500">
               <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />

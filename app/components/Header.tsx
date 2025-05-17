@@ -5,7 +5,7 @@ import Logo from './Logo';
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface HeaderProps {
   transparent?: boolean;
@@ -17,6 +17,7 @@ export default function Header({ transparent = false }: HeaderProps) {
   const { session } = useAuth();
   const supabase = createClientComponentClient();
   const router = useRouter();
+  const pathname = usePathname();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -36,9 +37,12 @@ export default function Header({ transparent = false }: HeaderProps) {
     }
   };
 
+  // Determine if on home page
+  const isHomePage = pathname === '/';
+
   return (
     <header className={`sticky top-0 z-50 w-full p-4 transition-colors duration-300 ${
-      transparent && !isScrolled 
+      transparent && !isScrolled && isHomePage
         ? 'bg-transparent' 
         : 'bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm'
     }`}>
@@ -49,15 +53,29 @@ export default function Header({ transparent = false }: HeaderProps) {
         
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
-          <Link href="#features" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-            Features
-          </Link>
-          <Link href="#how-it-works" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-            How It Works
-          </Link>
-          <Link href="#use-cases" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-            Use Cases
-          </Link>
+          {isHomePage ? (
+            <>
+              <Link href="#features" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                Features
+              </Link>
+              <Link href="#how-it-works" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                How It Works
+              </Link>
+              <Link href="#use-cases" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                Use Cases
+              </Link>
+            </>
+          ) : (
+            <Link href="/" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+              Home
+            </Link>
+          )}
+          
+          {session && (
+            <Link href="/upload" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+              Dashboard
+            </Link>
+          )}
         </nav>
         
         <div className="flex items-center gap-4">
@@ -73,7 +91,7 @@ export default function Header({ transparent = false }: HeaderProps) {
             </div>
           ) : (
             <Link href="/login" className="hidden md:inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
-              Get Started
+              {isHomePage ? 'Get Started' : 'Login'}
             </Link>
           )}
           
@@ -117,26 +135,49 @@ export default function Header({ transparent = false }: HeaderProps) {
         <div className="md:hidden absolute left-0 right-0 top-full bg-white dark:bg-gray-900 shadow-lg border-b border-gray-200 dark:border-gray-800 px-4 py-4">
           <nav className="flex flex-col space-y-4">
             <Link 
-              href="#features" 
+              href="/" 
               className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Features
+              Home
             </Link>
-            <Link 
-              href="#how-it-works" 
-              className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              How It Works
-            </Link>
-            <Link 
-              href="#use-cases" 
-              className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Use Cases
-            </Link>
+            
+            {session && (
+              <Link 
+                href="/upload" 
+                className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+            )}
+
+            {isHomePage && (
+              <>
+                <Link 
+                  href="#features" 
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Features
+                </Link>
+                <Link 
+                  href="#how-it-works" 
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  How It Works
+                </Link>
+                <Link 
+                  href="#use-cases" 
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Use Cases
+                </Link>
+              </>
+            )}
+            
             {session ? (
               <div className="space-y-2">
                 <div className="text-gray-700 dark:text-gray-300 py-2">{session.user?.email}</div>
@@ -156,7 +197,7 @@ export default function Header({ transparent = false }: HeaderProps) {
                 className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg py-2 px-4 text-center transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Get Started
+                {isHomePage ? 'Get Started' : 'Login'}
               </Link>
             )}
           </nav>

@@ -6,6 +6,7 @@ interface PDFDocument {
   file_name: string;
   file_id: string;
   created_at: string;
+  file_size?: number; // Optional file size in bytes
 }
 
 interface PDFListItemProps {
@@ -30,16 +31,56 @@ export default function PDFListItem({ document, onDelete }: PDFListItemProps) {
     }
   };
 
-  const formattedDate = new Date(document.created_at).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  // Format the date as relative time (e.g., "6 days ago")
+  const getRelativeTimeString = (date: Date): string => {
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInSecs = Math.floor(diffInMs / 1000);
+    const diffInMins = Math.floor(diffInSecs / 60);
+    const diffInHours = Math.floor(diffInMins / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+    
+    if (diffInDays > 30) {
+      return new Date(document.created_at).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } else if (diffInDays > 0) {
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    } else if (diffInHours > 0) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    } else if (diffInMins > 0) {
+      return `${diffInMins} minute${diffInMins > 1 ? 's' : ''} ago`;
+    } else {
+      return 'Just now';
+    }
+  };
+
+  // Format file size (e.g., "2.5 MB")
+  const formatFileSize = (bytes?: number): string => {
+    if (!bytes) return '';
+    
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+  };
+
+  const relativeTime = getRelativeTimeString(new Date(document.created_at));
+  const fileSize = formatFileSize(document.file_size);
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="text-blue-600 dark:text-blue-400">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-md border border-gray-200 dark:border-gray-700 transition-all duration-200 group">
+      <div className="flex items-center gap-4">
+        {/* File icon */}
+        <div className="text-blue-600 dark:text-blue-400 p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg flex-shrink-0">
           <svg 
             width="24" 
             height="24" 
@@ -61,29 +102,79 @@ export default function PDFListItem({ document, onDelete }: PDFListItemProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
             />
+            <path
+              d="M16 13H8"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M16 17H8"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M10 9H8"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 truncate">{document.file_name}</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Uploaded on {formattedDate}</p>
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-2 w-full md:w-auto">
-        <Link
-          href={`/chat/${encodeURIComponent(document.file_id)}`}
-          className="flex-1 md:flex-none text-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
-        >
-          Chat with PDF
-        </Link>
         
-        <button
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="flex-1 md:flex-none px-4 py-2 border border-red-500 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          {isDeleting ? 'Deleting...' : 'Delete'}
-        </button>
+        {/* Document info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            {document.file_name}
+          </h3>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <span>{relativeTime}</span>
+            {fileSize && (
+              <>
+                <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                <span>{fileSize}</span>
+              </>
+            )}
+          </div>
+        </div>
+        
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/chat/${encodeURIComponent(document.file_id)}`}
+            className="flex items-center justify-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+            aria-label="Open chat with this PDF"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>Open Chat</span>
+          </Link>
+          
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex items-center justify-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+            aria-label="Delete this PDF"
+          >
+            {isDeleting ? (
+              <span className="animate-pulse">Deleting...</span>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 mr-1">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Delete</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
