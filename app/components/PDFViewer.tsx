@@ -243,6 +243,8 @@ const PDFViewerComponent = forwardRef<HTMLDivElement, PDFViewerProps>(({
     async function getSignedUrl() {
       if (filePath) {
         try {
+          setLoading(true);
+          
           const response = await fetch('/api/storage/get-signed-url', {
             method: 'POST',
             headers: {
@@ -252,14 +254,22 @@ const PDFViewerComponent = forwardRef<HTMLDivElement, PDFViewerProps>(({
           });
 
           if (!response.ok) {
-            throw new Error('Failed to get signed URL');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to get signed URL');
           }
 
           const data = await response.json();
+          
+          if (!data || !data.signedUrl) {
+            throw new Error('Invalid response format: missing signed URL');
+          }
+          
           setSignedUrl(data.signedUrl);
-        } catch (err) {
+          setError(null);
+        } catch (err: any) {
           console.error('Error getting signed URL:', err);
-          setError('Failed to get secure access to PDF');
+          // Don't set error yet - let the Document component try with the public URL first
+          // We'll only show an error if both methods fail
         }
       }
     }
@@ -339,8 +349,42 @@ const PDFViewerComponent = forwardRef<HTMLDivElement, PDFViewerProps>(({
     console.error('Error loading PDF:', error);
     console.error('Current URL being used:', signedUrl || fileUrl);
     console.error('File path:', filePath);
-    setError(`Failed to load PDF: ${error.message}`);
-    setLoading(false);
+    
+    // Retry with a different approach if we have another option
+    if (!signedUrl && filePath) {
+      // If we failed with the public URL but haven't tried the signed URL yet,
+      // let's attempt to get a signed URL again (with a more aggressive approach)
+      fetch('/api/storage/get-signed-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ path: filePath, forceRefresh: true }) 
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to get signed URL on retry');
+        return response.json();
+      })
+      .then(data => {
+        if (data && data.signedUrl) {
+          console.log('Successfully obtained signed URL on retry');
+          setSignedUrl(data.signedUrl);
+          setError(null); // Clear error as we'll retry with the signed URL
+        } else {
+          throw new Error('Invalid signed URL data');
+        }
+      })
+      .catch(err => {
+        console.error('Error getting signed URL on retry:', err);
+        setError(`Failed to load PDF: ${error.message}. Try refreshing the page.`);
+        setLoading(false);
+      });
+    } else {
+      // If we've already tried with a signed URL or don't have a filePath for one,
+      // show the error
+      setError(`Failed to load PDF: ${error.message}. Try refreshing the page.`);
+      setLoading(false);
+    }
   }
 
   // We no longer need the changePage function for continuous scrolling
@@ -627,13 +671,14 @@ const PDFViewerComponent = forwardRef<HTMLDivElement, PDFViewerProps>(({
           }
         `}</style>
         
-        <Document
-          file={signedUrl || fileUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          onLoadError={onDocumentLoadError}
-          loading={<div className="flex justify-center items-center h-full">Loading PDF...</div>}
-          className="pdf-document"
-        >
+        {(signedUrl || fileUrl) ? (
+          <Document
+            file={signedUrl || fileUrl}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={<div className="flex justify-center items-center h-full">Loading PDF...</div>}
+            className="pdf-document"
+          >
           {!loading && !error && numPages && Array.from(new Array(numPages), (el, index) => (
             <div key={`page_container_${index + 1}`} id={`pdf-page-${index + 1}`} className="mb-4 shadow-lg">
               <Page
@@ -660,6 +705,11 @@ const PDFViewerComponent = forwardRef<HTMLDivElement, PDFViewerProps>(({
             </div>
           ))}
         </Document>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">Preparing document viewer...</p>
+          </div>
+        )}
         
         {/* Selection Popup */}
         {isPopupVisible && popupPosition && (

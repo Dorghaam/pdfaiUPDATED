@@ -15,6 +15,19 @@ export interface ParsedPDF {
   }>;
 }
 
+// PDF document interface for the documents list
+export interface PDFDocument {
+  id: string;
+  file_id: string;
+  file_name: string;
+  created_at: string;
+  user_id: string;
+  storage_path: string;
+  title?: string;
+  page_count: number;
+  file_size?: number;
+}
+
 // Source document interface for references
 export interface SourceDocument {
   pageContent: string;

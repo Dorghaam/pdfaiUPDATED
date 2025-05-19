@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
-
-interface PDFDocument {
-  id: string;
-  file_name: string;
-  file_id: string;
-  created_at: string;
-  file_size?: number; // Optional file size in bytes
-}
+import { PDFDocument } from '@/app/models/types';
 
 interface PDFListItemProps {
   document: PDFDocument;
@@ -137,6 +130,12 @@ export default function PDFListItem({ document, onDelete }: PDFListItemProps) {
               <>
                 <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
                 <span>{fileSize}</span>
+              </>
+            )}
+            {document.page_count && (
+              <>
+                <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                <span>{document.page_count} {document.page_count === 1 ? 'page' : 'pages'}</span>
               </>
             )}
           </div>

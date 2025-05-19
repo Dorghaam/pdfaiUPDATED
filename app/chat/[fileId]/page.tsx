@@ -42,32 +42,41 @@ export default function ChatPage() {
         return;
       }
 
+      // Overall page loading state
       setLoadingPdf(true);
       setLoadError(null);
 
+      let pdfPublicUrl = null;
       try {
-        // Get the public URL for the file from Supabase
-        const { data: { publicUrl } } = supabase.storage
+        // Step 1: Get the public URL for the file from Supabase
+        const { data } = supabase.storage
           .from('pdfs')
           .getPublicUrl(fileId);
 
-        if (!publicUrl) {
-          throw new Error('Could not get public URL for PDF');
+        if (!data || !data.publicUrl) {
+          throw new Error('Could not get public URL for PDF. The file might not exist or is not public.');
         }
-
-        setPdfUrl(publicUrl);
+        
+        pdfPublicUrl = data.publicUrl;
+        setPdfUrl(pdfPublicUrl);
         
         // Extract filename from the fileId
         const filename = fileId.split('/').pop() || 'Document';
         setFileName(filename);
-
-        // Initialize the chat with the PDF file ID
-        await initializeChatForPdf(fileId);
-      } catch (err: any) {
-        console.error('Error initializing chat:', err);
-        setLoadError(err.message || 'Failed to load PDF or initialize chat');
-      } finally {
+        
+        // Step 2: PDF URL and name are now set, mark PDF loading as complete
         setLoadingPdf(false);
+
+        // Step 3: Initialize chat (the hook handles its own loading/error states)
+        const chatInitializedSuccessfully = await initializeChatForPdf(fileId);
+        if (!chatInitializedSuccessfully) {
+          console.error("Chat initialization failed as reported by the hook.");
+          // The hook itself will set `chatError` state
+        }
+      } catch (err: any) {
+        console.error('Error during page initialization (getting PDF URL):', err);
+        setLoadError(err.message || 'Failed to load PDF details');
+        setLoadingPdf(false); // Ensure loadingPdf is false on error
       }
     }
 
@@ -123,6 +132,7 @@ export default function ChatPage() {
     }
   };
 
+  // If no fileId is provided, show a message and a button to upload a PDF
   if (!fileId) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -139,15 +149,17 @@ export default function ChatPage() {
     );
   }
 
-  if (loadingPdf && !pdfUrl) {
+  // Show a comprehensive loading indicator when either PDF or chat is loading
+  if ((loadingPdf && !pdfUrl) || (!loadingPdf && isInitializing)) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mr-3"></div>
-        <p className="text-lg">Loading PDF...</p>
+        <p className="text-lg">{loadingPdf ? 'Loading PDF details...' : 'Initializing chat...'}</p>
       </div>
     );
   }
 
+  // Show PDF loading error if it exists
   if (loadError) {
     return (
       <div className="flex flex-col items-center justify-center h-screen p-4">

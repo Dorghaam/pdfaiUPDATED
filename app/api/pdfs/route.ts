@@ -27,8 +27,9 @@ export async function GET(request: NextRequest) {
     
     if (documentsError) {
       console.error('Error fetching PDF documents:', documentsError);
+      console.error('Error details:', documentsError.message, documentsError.details);
       return NextResponse.json(
-        { error: 'Failed to retrieve documents' },
+        { error: 'Failed to retrieve documents', details: documentsError.message },
         { status: 500 }
       );
     }

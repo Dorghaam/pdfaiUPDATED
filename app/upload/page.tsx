@@ -6,13 +6,7 @@ import PDFUpload from '../components/PDFUpload';
 import PDFListItem from '../components/PDFListItem';
 import Header from '../components/Header';
 import { v4 as uuidv4 } from 'uuid';
-
-interface PDFDocument {
-  id: string;
-  file_name: string;
-  file_id: string;
-  created_at: string;
-}
+import { PDFDocument } from '@/app/models/types';
 
 export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
