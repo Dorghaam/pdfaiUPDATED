@@ -100,6 +100,13 @@ const ChatInterface = forwardRef<ChatInterfaceRef, ChatInterfaceProps>(({
     }
   };
   
+  // Update messages when initialMessages prop changes
+  useEffect(() => {
+    if (initialMessages && initialMessages.length > 0 && messages.length === 0) {
+      setMessages(initialMessages);
+    }
+  }, [initialMessages, messages.length]);
+  
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

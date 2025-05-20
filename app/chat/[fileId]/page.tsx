@@ -6,7 +6,7 @@ import ChatInterface from '@/app/components/ChatInterface';
 import PDFViewer from '@/app/components/PDFViewer';
 import { supabase } from '@/app/lib/supabaseClient';
 import { usePDFChat } from '@/app/hooks/usePDFChat';
-import { SourceDocument, ChatResponse } from '@/app/models/types';
+import { SourceDocument, ChatResponse, ChatMessage } from '@/app/models/types';
 import { ExplanationLevel, EXPLANATION_LEVELS } from '@/app/components/ChatInterface';
 
 export default function ChatPage() {
@@ -20,6 +20,9 @@ export default function ChatPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeHighlight, setActiveHighlight] = useState<{ text: string, pageNumber: number } | null>(null);
   const [explanationLevel, setExplanationLevel] = useState<ExplanationLevel>("High Schooler");
+  const [initialChatMessages, setInitialChatMessages] = useState<ChatMessage[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyLoadError, setHistoryLoadError] = useState<string | null>(null);
   const pdfViewerRef = useRef<any>(null);
   const chatInterfaceRef = useRef<{ sendMessage: (message: string) => Promise<void> }>(null);
   
@@ -72,11 +75,54 @@ export default function ChatPage() {
         if (!chatInitializedSuccessfully) {
           console.error("Chat initialization failed as reported by the hook.");
           // The hook itself will set `chatError` state
+        } else {
+          // After chat is initialized successfully, fetch chat history
+          await fetchChatHistoryForPdf(fileId);
         }
       } catch (err: any) {
         console.error('Error during page initialization (getting PDF URL):', err);
         setLoadError(err.message || 'Failed to load PDF details');
         setLoadingPdf(false); // Ensure loadingPdf is false on error
+      }
+    }
+
+    // Function to fetch chat history for the PDF
+    async function fetchChatHistoryForPdf(fileId: string) {
+      setIsLoadingHistory(true);
+      setHistoryLoadError(null);
+      
+      try {
+        const response = await fetch(`/api/chat/pdf-history?fileId=${encodeURIComponent(fileId)}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to load chat history');
+        }
+        
+        const data = await response.json();
+        
+        if (data.history && Array.isArray(data.history)) {
+          // Transform fetched messages if needed to match ChatMessage interface
+          const formattedMessages: ChatMessage[] = data.history.map((msg: any) => ({
+            role: msg.role,
+            content: msg.content,
+            sourceDocuments: msg.source_documents ? msg.source_documents.map((doc: any) => ({
+              pageContent: doc.pageContent,
+              metadata: {
+                ...(doc.metadata || {}),
+                pageNumber: doc.metadata?.pageNumber ? Number(doc.metadata.pageNumber) : undefined
+              }
+            })) : undefined
+          }));
+          
+          setInitialChatMessages(formattedMessages);
+          console.log(`Loaded ${formattedMessages.length} historical messages`);
+        }
+      } catch (err: any) {
+        console.error('Error fetching chat history:', err);
+        setHistoryLoadError(err.message || 'Failed to load chat history');
+      } finally {
+        setIsLoadingHistory(false);
       }
     }
 
@@ -252,6 +298,11 @@ export default function ChatPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-2"></div>
               <p>Initializing chat...</p>
             </div>
+          ) : isLoadingHistory ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-2"></div>
+              <p>Loading chat history...</p>
+            </div>
           ) : chatError ? (
             <div className="flex-1 flex items-center justify-center p-4">
               <div className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 p-4 rounded-md">
@@ -264,6 +315,21 @@ export default function ChatPage() {
                 </button>
               </div>
             </div>
+          ) : historyLoadError ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-4">
+              <div className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 p-4 rounded-md mb-4">
+                <p>Warning: {historyLoadError}</p>
+                <p className="text-sm mt-1">You can still chat, but your previous messages couldn't be loaded.</p>
+              </div>
+              <ChatInterface
+                ref={chatInterfaceRef}
+                onSendMessage={handleSendMessage}
+                isReady={!!chatService && !isInitializing}
+                selectedLevel={explanationLevel}
+                onLevelChange={setExplanationLevel}
+                initialMessages={[]}
+              />
+            </div>
           ) : (
             <ChatInterface
               ref={chatInterfaceRef}
@@ -271,6 +337,7 @@ export default function ChatPage() {
               isReady={!!chatService && !isInitializing}
               selectedLevel={explanationLevel}
               onLevelChange={setExplanationLevel}
+              initialMessages={initialChatMessages}
             />
           )}
         </div>
