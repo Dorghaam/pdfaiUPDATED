@@ -6,6 +6,7 @@ import PDFUpload from './components/PDFUpload';
 import Logo from './components/Logo';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import PricingSection from './components/PricingSection';
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
 import { useAuth } from './components/AuthProvider';
@@ -15,7 +16,7 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, userTier } = useAuth();
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
@@ -275,6 +276,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Pricing */}
+      <PricingSection premiumPrice="$9.99 / month" />
 
       {/* CTA Section */}
       <section className="py-16 px-4 bg-purple-100 dark:bg-purple-900/20">

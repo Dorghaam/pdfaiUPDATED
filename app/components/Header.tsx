@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter, usePathname } from 'next/navigation';
+import { useUserTier } from '@/app/hooks/useUserTier';
 
 interface HeaderProps {
   transparent?: boolean;
@@ -15,6 +16,7 @@ export default function Header({ transparent = false }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { session } = useAuth();
+  const { tier, isPremium, isAuthenticated, isLoading } = useUserTier();
   const supabase = createClientComponentClient();
   const router = useRouter();
   const pathname = usePathname();
@@ -72,9 +74,16 @@ export default function Header({ transparent = false }: HeaderProps) {
           )}
           
           {session && (
-            <Link href="/upload" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-              Dashboard
-            </Link>
+            <>
+              <Link href="/upload" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                Dashboard
+              </Link>
+              {isAuthenticated && (
+                <Link href="/account" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                  Account
+                </Link>
+              )}
+            </>
           )}
         </nav>
         
@@ -82,6 +91,13 @@ export default function Header({ transparent = false }: HeaderProps) {
           {session ? (
             <div className="hidden md:flex items-center gap-4">
               <span className="text-gray-700 dark:text-gray-300">{session.user?.email}</span>
+              {isAuthenticated && !isLoading && tier && (
+                <span className={`hidden md:inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                  isPremium ? 'bg-yellow-400 text-yellow-900' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                }`}>
+                  {tier.charAt(0).toUpperCase() + tier.slice(1)} Tier
+                </span>
+              )}
               <button 
                 onClick={handleSignOut}
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
@@ -143,13 +159,24 @@ export default function Header({ transparent = false }: HeaderProps) {
             </Link>
             
             {session && (
-              <Link 
-                href="/upload" 
-                className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
+              <>
+                <Link 
+                  href="/upload" 
+                  className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                {isAuthenticated && (
+                  <Link 
+                    href="/account" 
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Account
+                  </Link>
+                )}
+              </>
             )}
 
             {isHomePage && (
@@ -181,6 +208,13 @@ export default function Header({ transparent = false }: HeaderProps) {
             {session ? (
               <div className="space-y-2">
                 <div className="text-gray-700 dark:text-gray-300 py-2">{session.user?.email}</div>
+                {isAuthenticated && !isLoading && tier && (
+                  <div className={`py-1 px-3 text-xs font-semibold rounded-full inline-block mb-2 ${
+                    isPremium ? 'bg-yellow-400 text-yellow-900' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                  }`}>
+                    {tier.charAt(0).toUpperCase() + tier.slice(1)} Tier
+                  </div>
+                )}
                 <button 
                   onClick={() => {
                     handleSignOut();
