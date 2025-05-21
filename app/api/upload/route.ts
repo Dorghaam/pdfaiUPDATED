@@ -20,24 +20,53 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if the user already has 5 PDF documents
-    const { data: existingPdfs, error: countError } = await supabase
-      .from('pdf_documents')
-      .select('id')
-      .eq('user_id', user.id);
+    // Fetch user's subscription tier and status
+    const { data: subscriptionData, error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .select('tier, status')
+      .eq('user_id', user.id)
+      .single();
       
-    if (countError) {
-      console.error('Error checking PDF count:', countError);
+    let userTier = 'free'; // Default tier
+    let userStatus = 'active'; // Default status for free
+    
+    if (subscriptionError) {
+      console.error('Error fetching user subscription, defaulting to free:', subscriptionError.message);
+      // Keep default 'free' / 'active'
+    } else if (subscriptionData) {
+      userTier = subscriptionData.tier;
+      userStatus = subscriptionData.status || 'active'; // Ensure status has a fallback
+    } else {
+      console.warn('No subscription record found for user, defaulting to free. Ensure ensure_user_subscription trigger is working.');
+      // Keep default 'free' / 'active'
+    }
+    
+    // Define daily PDF limit based on tier
+    const dailyPdfLimit = userTier === 'premium' && userStatus === 'active' ? 10 : 1;
+    
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Count PDFs uploaded today
+    const { count: pdfsUploadedTodayCount, error: countTodayError } = await supabase
+      .from('pdf_documents')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('uploaded_today_at', today);
+      
+    if (countTodayError) {
+      console.error('Error checking today\'s PDF count:', countTodayError);
       return NextResponse.json(
-        { error: 'Failed to check document limit' },
+        { error: 'Failed to check daily document limit' },
         { status: 500 }
       );
     }
     
-    if (existingPdfs && existingPdfs.length >= 5) {
+    // Enforce daily limit
+    if (pdfsUploadedTodayCount != null && pdfsUploadedTodayCount >= dailyPdfLimit) {
       return NextResponse.json(
-        { error: 'Maximum of 5 PDFs allowed. Please delete one to upload a new one.' },
-        { status: 400 }
+        { error: `Daily limit of ${dailyPdfLimit} PDF${dailyPdfLimit === 1 ? '' : 's'} reached for your ${userTier} tier.${userTier === 'free' ? ' Upgrade to premium for a higher limit.' : ''}` },
+        { status: 429 }
       );
     }
     
